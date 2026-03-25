@@ -1,0 +1,20 @@
+option(NATIVE_PARSER "enable native parser" OFF)
+option(LIBSCCA_PARSER "enable libscca parser" OFF) # apt install -y libscca-dev libbfio-dev
+option(NTDLL_PARSER "enable ntdll.dll parser" OFF)
+option(LIBPREFETCH_PARSER "enable libprefetch parser" OFF)
+
+target_sources(prefetch PRIVATE parser.cpp)
+
+if(NATIVE_PARSER)
+    target_compile_definitions(prefetch PRIVATE NATIVE_PARSER)
+    target_sources(prefetch PRIVATE native_parser.cpp)
+endif()
+if(LIBSCCA_PARSER)
+    find_package(PkgConfig)
+    pkg_check_modules(LIBSCCA REQUIRED libscca)
+    target_include_directories(prefetch PRIVATE ${LIBSCCA_INCLUDE_DIRS})
+    target_link_libraries(prefetch ${LIBSCCA_LIBRARIES})
+    target_compile_options(prefetch PRIVATE ${LIBSCCA_CFLAGS_OTHER})
+    target_compile_definitions(prefetch PRIVATE LIBSCCA_PARSER)
+    target_sources(prefetch PRIVATE libscca_parser.cpp)
+endif()
