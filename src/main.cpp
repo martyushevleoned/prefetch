@@ -6,9 +6,10 @@
 #include <string>
 #include <unistd.h>
 
-#include "pf_consumer.hpp"
-#include "pf_data.hpp"
-#include "pf_parser.hpp"
+#include "consumer/consumer.hpp"
+#include "parser/parser.hpp"
+
+using namespace prefetch;
 
 // Prints usage information to stderr
 void usage(const char* programName)
@@ -20,37 +21,33 @@ void usage(const char* programName)
 
 int main(int argc, char* argv[])
 {
-    std::string dirPath{"./Prefetch"};
-    std::string outputPath{""};
+    std::string dirPath;
+    std::string outputPath;
     int opt;
 
-    // Parse command line arguments using getopt
     while ((opt = getopt(argc, argv, "d:o:")) != -1)
     {
-        if (opt == 'd')
+        switch(opt)
         {
-            dirPath = optarg;
-        }
-        else if (opt == 'o')
-        {
-            outputPath = optarg;
-        }
-        else
-        {
-            usage(argv[0]);
-            return 1;
+            case 'd':
+                dirPath = optarg;
+                break;
+            case 'o':
+                outputPath = optarg;
+                break;
+            default:
+                usage(argv[0]);
+                return 1;
         }
     }
 
-    // Directory path is required
     if (dirPath.empty())
     {
         usage(argv[0]);
         return 1;
     }
 
-    // Create consumer using factory
-    std::unique_ptr<PfConsumer> consumer = make_consumer(outputPath);
+    std::unique_ptr<consumer::PfConsumer> consumer = consumer::make_consumer(outputPath);
 
     if (!consumer)
     {
@@ -58,12 +55,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Iterate through directory entries
     for (const auto& entry : std::filesystem::directory_iterator(dirPath))
     {
         if (entry.path().extension().string() == ".pf")
         {
-            if (std::optional<PfData> data = parsePfFile(entry.path().string()))
+            std::optional<Record> data = parser::parseFile(entry.path().string());
+            if (data)
             {
                 consumer->consume(*data);
             }
